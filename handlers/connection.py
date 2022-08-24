@@ -60,7 +60,7 @@ class BlizzApiHandler:
 
 
 class DatabaseConnector:
-    
+
     def __init__(self):
         self.connection = self.get_connection()
 
@@ -78,4 +78,3 @@ class DatabaseConnector:
 
         except psycopg2.OperationalError:
             return None
-

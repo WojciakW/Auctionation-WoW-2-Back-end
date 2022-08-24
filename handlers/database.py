@@ -4,7 +4,6 @@ from pathlib import Path
 from handlers.connection import BlizzApiHandler, DatabaseConnector
 from handlers.exceptions import TimeoutError
 
-import time
 import re
 import json
 import csv
@@ -121,23 +120,38 @@ class RealmDataHandler(PostgresManager):
         4813: 'mandokir'
     }
 
-    def __init__(self, realm_id=None):
+    def __init__(self):
         super().__init__()
 
-        self.realm_id = realm_id
+        self.realm_id = None
 
         self.auction_data_alliance = None
         self.auction_data_horde = None
 
-        self.cache_path = f'{Path(__file__).resolve().parents[0]}/cache/'
+        self.cache_path = f'{Path(__file__).resolve().parents[1]}/cache/'
+
+    def __del__(self):
+        
+        if self.db_conn:
+            self.db_conn.close()
+    
+    # @property
+    # def realm_id(self):
+    #     return self.realm_id
+
+
+    # @realm_id.setter
+    # def realm_id(self, id):
+    #     self.realm_id = id
+
 
     def make_realms(self):
         """
-        Creates appropriate realm tables.
+        Creates appropriate realm_id tables.
         """
 
         api = BlizzApiHandler(
-            'https://eu.api.blizzard.com/data/wow/realm/index?namespace=dynamic-classic-eu&locale=en_GB&access_token='
+            'https://eu.api.blizzard.com/data/wow/realm_id/index?namespace=dynamic-classic-eu&locale=en_GB&access_token='
         )
         api.get_response()
 
@@ -163,17 +177,12 @@ class RealmDataHandler(PostgresManager):
     
     def set_auction_data(self, faction_sign):
 
-        FACTIONS = {
-            'a': 2,
-            'h': 6
-        }
-
         api = BlizzApiHandler(
-            f'https://eu.api.blizzard.com/data/wow/connected-realm/{self.realm_id}/auctions/{FACTIONS.get(faction_sign)}?namespace=dynamic-classic-eu&locale=en_GB&access_token=')
+            f'https://eu.api.blizzard.com/data/wow/connected-realm/{self.realm_id}/auctions/{self.FACTIONS[faction_sign]}?namespace=dynamic-classic-eu&locale=en_GB&access_token=')
         api.get_response()
 
         if api.timeout:
-            print(f'BlizzAPI request for realm id: {self.realm_id}, {faction_sign} timed out.')
+            print(f'BlizzAPI request for realm_id id: {self.realm_id}, {faction_sign} timed out.')
 
             raise TimeoutError
 
@@ -185,13 +194,14 @@ class RealmDataHandler(PostgresManager):
 
 
     def cache_auction_data(self, faction_data, faction_sign):
-        print(f'Caching auctions data from realm id: {self.realm_id}, {faction_sign}')
+
+        print(f'Caching auctions data from realm_id id: {self.realm_id}, {faction_sign}')
 
         with open(f'cache/{self.realm_id}_{faction_sign}.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
 
             if not faction_data.get('auctions'):  # ignore empty Auction Houses
-                print(f'None auctions in realm id: {self.realm_id}, {faction_sign}')
+                print(f'None auctions in realm_id id: {self.realm_id}, {faction_sign}')
 
                 return None
             
@@ -210,7 +220,7 @@ class RealmDataHandler(PostgresManager):
                 if line.get('buyout') == 0:
                     continue
                 
-                # encode time left to ints for space saving
+                # normalization
                 if line.get('time_left') == 'SHORT':
                     time_left = 1
                 
@@ -234,7 +244,8 @@ class RealmDataHandler(PostgresManager):
                 ])
 
 
-    def bulk_create_from_cache(self, realm_name, realm_cache, faction_sign):
+    def bulk_create_from_cache(self, realm_name, realm_id_cache, faction_sign):
+
         cursor = self.db_conn.cursor()
 
         cursor.execute(
@@ -242,7 +253,7 @@ class RealmDataHandler(PostgresManager):
                 (
                     realm_name,
                     self.cache_path,
-                    realm_cache,
+                    realm_id_cache,
                     faction_sign
                 )
             )
@@ -250,75 +261,59 @@ class RealmDataHandler(PostgresManager):
         self.db_conn.commit()
 
 
-    def clear_cache(self, realm, faction_sign):
-        os.remove(f'{self.cache_path}/{realm}_{faction_sign}.csv')
+    def clear_cache(self, realm_id, faction_sign):
+
+        os.remove(f'{self.cache_path}/{realm_id}_{faction_sign}.csv')
 
 
-class DatabaseHandler(PostgresManager):
-
-    def populate_date(self):
-        cursor = self.db_conn.cursor()
-        cursor.execute(DatabaseHandler.CREATE_DATE % self.time)
-        self.db_conn.commit()
-
-    def populate_realms(self):
-        pass
-
-    def populate_items(self):
-        pass
-
-    def populate_auctions(self):
-        api = BlizzApiHandler(
-            'https://eu.api.blizzard.com/data/wow/connected-realm/4440/auctions/2?namespace=dynamic-classic-eu&locale=en_GB&access_token=')
-        api.get_response()
-
-        if api.timeout:
-            pass
-
-        else:
-            response_json = json.loads(api.response.content)
-
-            for _ in range(50):  # batch create
-                values_base = 'VALUES '
-
-                for i in range(1000):
-
-                    print(i, end='\r')
-
-                    if response_json.get('auctions')[i].get('buyout') == 0:
-                        continue
-
-                    wow_id              = int(response_json.get('auctions')[i].get('id'))
-                    wow_item_id         = int(response_json.get('auctions')[i].get('item').get('id'))
-                    buyout              = int(response_json.get('auctions')[i].get('buyout'))
-                    api_request_time    = self.time
-                    faction             = 'd'
-                    realm               = 'dupa'
-                    quantity            = int(response_json.get('auctions')[i].get('quantity'))
-
-                    value = f"('{faction}', {wow_id}, {wow_item_id}, {buyout}, {quantity}, false, ( SELECT id FROM app_auctionation_dates WHERE value='{api_request_time}' ), 2)"
-
-                    if i != 999:
-                        value += ','
-
-                    values_base += value
-
-                cursor = self.db_conn.cursor()
-                cursor.execute(DatabaseHandler.CREATE_AUCTIONS_BASE + values_base)
-                self.db_conn.commit()
+    def setup(self):
+        self.make_realms()
 
 
-def archive_auctions(self):
-    pass
+    def run(self):
 
+        for id in self.REALM_LIST_EU:
 
-# handler = DatabaseHandler()
-# #
-# # handler.populate_date()
-#
-# start = time.time()
-# handler.populate_realms()
-# end = time.time()
-#
-# print(end - start, 's')
+            self.realm_id = id
 
+            # Alliance faction side:
+            
+            self.set_auction_data('a')
+
+            self.cache_auction_data(
+                faction_data=       self.auction_data_alliance,
+                faction_sign=       'a'
+            )
+
+            self.bulk_create_from_cache(
+                realm_name=         self.REALM_LIST_EU[id],
+                realm_id_cache=     id,
+                faction_sign=       'a'
+            )
+
+            self.clear_cache(
+                realm_id=           id,
+                faction_sign=       'a'
+            )
+
+            # Horde faction side:
+
+            self.set_auction_data('h')
+
+            self.cache_auction_data(
+                faction_data=       self.auction_data_horde,
+                faction_sign=       'h'
+            )
+
+            self.bulk_create_from_cache(
+                realm_name=         self.REALM_LIST_EU[id],
+                realm_id_cache=     id,
+                faction_sign=       'h'
+            )
+
+            self.clear_cache(
+                realm_id=           id,
+                faction_sign=       'h'
+            )
+            
+            

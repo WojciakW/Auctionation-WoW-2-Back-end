@@ -1,0 +1,1 @@
+*This is a **cache** directory used to temporarily store auction data from all the realms.*

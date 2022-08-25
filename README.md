@@ -1,4 +1,5 @@
 # AuctioNation-WoW 2 **Back-end**
+**Work in progress**
 ## About AuctioNation Project:
 *To check out the first version's source go to:
 https://github.com/WojciakW/Auctionation-WoW*

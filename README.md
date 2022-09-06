@@ -15,14 +15,18 @@ It is a social web app for World of Warcraft Classic live auction house statisti
 -   **Second version (AuctioNation-WoW 2)**:
     - **Back-end**:
         - Python,
-        - Custom back-end handling driver using psycopg2,
-        - PostgreSQL Database,
-        - FastAPI (**TODO**),
-        - Linux cron (**TODO**)
+        - PostgreSQL Database
+        - Custom back-end controller using psycopg2 + numpy (**in progress**),
+        - HTTP request/response handling using FastAPI (**TODO**),
+        - Linux cron job scheduler (**TODO**)
     - Front-end:
         - A front-end framework (currently not decided, **TODO**)
 
-### Key features:
+### About controller:
+ It's job is to cyclically fetch official WoW auction data **and** handle all database writes and reads on each realm. When a single API HTTP request is made, a new *RealmReadHandler* class instance is born, most willingly using as much multiprocessing power as possible.
+
+
+### AuctioNation project Key features:
 - Automated 1-hour-cycle database handling:
   - fetching live World of Warcraft auctions data from official Blizzard API,
   - computing various statistics,

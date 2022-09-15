@@ -1,6 +1,5 @@
-from lib2to3.pytree import Base
 """
-    Auctionation2 exceptions.
+Auctionation2 exceptions.
 """
 
 

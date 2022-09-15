@@ -12,7 +12,7 @@ import psycopg2
 from .local_settings import CLIENT_ID, CLIENT_SECRET, USER, PASSWORD
 
 
-class BlizzApiHandler:
+class BlizzApi:
 
     def __init__(self, url):
         self.url = url
@@ -59,11 +59,11 @@ class BlizzApiHandler:
             self.timeout = True
 
 
-class DatabaseConnector:
+class DatabaseConnection:
 
     def __init__(self):
         self.connection = self.get_connection()
-
+    
     def get_connection(self):
         try:
             result = psycopg2.connect(

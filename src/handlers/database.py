@@ -4,6 +4,7 @@ from pathlib import Path
 from .connection import BlizzApi, DatabaseConnection
 from .exceptions import TimeoutError
 from .multiprocess import MultiprocessManager
+from .local_settings import USER, PASSWORD
 
 import json
 import csv
@@ -235,8 +236,8 @@ class RealmWriteHandler(QueryMixin):
 
         connection = psycopg2.connect(
                 database='auctionation2_test',
-                user='postgres',
-                password='coderslab',
+                user=USER,
+                password=PASSWORD,
                 host='127.0.0.1',
                 port='5432'
             )

@@ -1,5 +1,5 @@
 """
-Blizzard API connection resources.
+Blizzard API and database connection resources.
 """
 
 import requests

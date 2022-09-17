@@ -12,7 +12,7 @@ class MultiprocessManager:
     """
 
     @staticmethod
-    def mark(func):
+    def process_mark(func):
         """
             Decorator to mark a func to be handled using multiprocessing.
 

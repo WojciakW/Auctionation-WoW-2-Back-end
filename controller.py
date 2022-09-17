@@ -1,11 +1,11 @@
-from src.handlers.database import RealmWriteHandler
+from src.handlers.database import RealmWriteHandler, ItemDataPopulator
+import multiprocessing
 
 
 class Controller:
 
     @staticmethod
-    def run():
-
+    def run_auction_writes():
         r_a = RealmWriteHandler('a')
         r_h = RealmWriteHandler('h')
 
@@ -14,5 +14,12 @@ class Controller:
             r_h.run_session(realm_id)
 
 
+    @staticmethod
+    def run_populate_items():
+        i = ItemDataPopulator()
+        i.populate_data()
+
+
 if __name__ == '__main__':
-    Controller.run()
+    # placeholder
+    pass

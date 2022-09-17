@@ -113,8 +113,19 @@ class QueryMixin:
         CSV HEADER;
     """
 
-    WRITE_ITEM_DATA = """
-        INSERT INTO 
+    POPULATE_ITEM_DATA = """
+        COPY item_data(
+            wow_item_id,
+            name,
+            class,
+            subclass,
+            slot,
+            quality,
+            icon_url
+        )
+        FROM '%s'
+        DELIMITER ','
+        CSV HEADER;
     """
 
     READ_ITEM_DATA = """
@@ -317,22 +328,35 @@ class RealmWriteHandler(QueryMixin):
 
     def clear_cache(self, realm_id):
         """
-            Removes unimportant .csv cache file.
+            Removes .csv cache file.
 
         """
 
         os.remove(f'{self.cache_path}/{realm_id}_{self.faction_sign}.csv')
 
 
-    @MultiprocessManager.mark    
+    @MultiprocessManager.process_mark    
     def run_session(self, realm_id):
         self.cache_auction_data(realm_id)
         self.bulk_write(realm_id)
         self.clear_cache(realm_id)
 
 
-class ItemWriteHandler(QueryMixin):
-    pass
+class ItemDataPopulator(QueryMixin, DatabaseConnection):
+    """
+        Used to populate item data table.
+
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.path = f'{Path(__file__).resolve().parents[1]}/out.csv'
+
+    
+    def populate_data(self):
+        cursor = self.connection.cursor()
+        cursor.execute(self.POPULATE_ITEM_DATA % (self.path))
+        self.connection.commit()
 
 
 class ItemReadHandler(DatabaseConnection, QueryMixin):

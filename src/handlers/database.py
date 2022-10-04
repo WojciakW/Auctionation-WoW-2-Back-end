@@ -285,23 +285,23 @@ class RealmWriteHandler(QueryMixin):
         connection.close()
 
 
-    def cache_auction_data(self, realm_id):
+    def cache_auction_data(self, realm_id: int) -> bool:
         """
             Writes temporary .csv file into cache/ directory for further SQL import purpose.
+            Returns False in case operation failed, True otherwise.
 
         """
         
         auction_data = self.set_auction_data(realm_id)
 
+        if not auction_data.get('auctions'):  # ignore empty Auction Houses
+            print(f'None auctions in realm_id id: {realm_id}, {self.faction_sign}')
+            return False
+
         print(f'Caching auctions data from realm id: {realm_id}, {self.faction_sign} faction ({len(auction_data.get("auctions"))} entries)')
 
         with open(f'{self.cache_path}/{realm_id}_{self.faction_sign}.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
-
-            if not auction_data.get('auctions'):  # ignore empty Auction Houses
-                print(f'None auctions in realm_id id: {realm_id}, {self.faction_sign}')
-
-                return None
             
             writer.writerow([
                 'faction',
@@ -341,6 +341,8 @@ class RealmWriteHandler(QueryMixin):
                     time_left,
                 ])
 
+        return True
+
 
     def clear_cache(self, realm_id):
         """
@@ -353,7 +355,9 @@ class RealmWriteHandler(QueryMixin):
 
     @MultiprocessManager.process_mark    
     def run_session(self, realm_id):
-        self.cache_auction_data(realm_id)
+        if not self.cache_auction_data(realm_id):
+            return None
+
         self.bulk_write(realm_id)
         self.clear_cache(realm_id)
 

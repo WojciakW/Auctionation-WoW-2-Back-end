@@ -100,7 +100,7 @@ class QueryMixin:
 
     CREATE_ITEM_TABLE = """
         CREATE TABLE item_data(
-            wow_item_id PRIMARY KEY,
+            wow_item_id SERIAL PRIMARY KEY,
             name VARCHAR,
             class VARCHAR,
             subclass VARCHAR,
@@ -225,7 +225,7 @@ class RealmTableMaker(DatabaseConnection, QueryMixin):
         self.cursor = self.connection.cursor()
 
     
-    def run(self):
+    def START(self):
         for realm_id in self.REALM_LIST_EU:
             self.cursor.execute(self.CREATE_REALMS % self.REALM_LIST_EU[realm_id])
             self.connection.commit()
@@ -240,7 +240,7 @@ class ItemTableMaker(DatabaseConnection, QueryMixin):
         super().__init__()
         self.cursor = self.connection.cursor()
 
-    def run(self):
+    def START(self):
         self.cursor.execute(self.CREATE_ITEM_TABLE)
         self.connection.commit()
     
@@ -380,7 +380,7 @@ class RealmWriteHandler(QueryMixin):
 
 
     @MultiprocessManager.process_mark    
-    def run_session(self, realm_id):
+    def START(self, realm_id):
         if not self.cache_auction_data(realm_id):
             return None
 
@@ -399,7 +399,7 @@ class ItemDataPopulator(QueryMixin, DatabaseConnection):
         self.path = f'{Path(__file__).resolve().parents[1]}/out.csv'
 
     
-    def run(self):
+    def START(self):
         cursor = self.connection.cursor()
         cursor.execute(self.POPULATE_ITEM_DATA % (self.path))
         self.connection.commit()

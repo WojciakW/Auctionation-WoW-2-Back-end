@@ -7,32 +7,46 @@ from src.handlers.database import (
 
 
 class Controller:
+    handler = None
 
-    @staticmethod
-    def run_create_realm_tables():
-        r = RealmTableMaker()
-        r.run()
+    @classmethod
+    def RUN_create_realm_tables(cls) -> None:
+        """
+        Setup PostgreSQL Realm tables 'realm_{realm_name}'.
+        """
+        cls.handler = RealmTableMaker()
+        cls.handler.START()
 
-    @staticmethod
-    def run_create_item_table():
-        i = ItemTableMaker()
-        i.run()
+    @classmethod
+    def RUN_create_item_table(cls) -> None:
+        """
+        Setup PostgreSQL Item table 'item_data'.
+        """
+        cls.handler = ItemTableMaker()
+        cls.handler.START()
 
-    @staticmethod
-    def run_auction_writes():
-        r_a = RealmWriteHandler('a')
-        r_h = RealmWriteHandler('h')
+    @classmethod
+    def RUN_auction_writes(cls) -> None:
+        """
+        Fetch and write all the live auctions data.
+        """
+        cls.handler = RealmWriteHandler('a')
+        for realm_id in cls.handler.REALM_LIST_EU:
+            cls.handler.START(realm_id)
 
-        for realm_id in RealmWriteHandler.REALM_LIST_EU:
-            r_a.run_session(realm_id)
-            r_h.run_session(realm_id)
+        cls.handler = RealmWriteHandler('h')
+        for realm_id in cls.handler.REALM_LIST_EU:
+            cls.handler.START(realm_id)
 
-    @staticmethod
-    def run_populate_items():
-        i = ItemDataPopulator()
-        i.run()
+    @classmethod
+    def RUN_populate_items(cls) -> None:
+        """
+        Write all the items data.
+        """
+        cls.handler = ItemDataPopulator()
+        cls.handler.START()
 
 
 if __name__ == '__main__':
     # placeholder
-    Controller.run_populate_items()
+    pass

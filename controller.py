@@ -1,13 +1,22 @@
-from src.handlers.database import RealmWriteHandler, ItemDataPopulator, RealmTableMaker
-import multiprocessing
+from src.handlers.database import (
+    RealmWriteHandler, 
+    ItemDataPopulator,
+    RealmTableMaker,
+    ItemTableMaker
+)
 
 
 class Controller:
 
     @staticmethod
-    def run_create_tables():
+    def run_create_realm_tables():
         r = RealmTableMaker()
         r.run()
+
+    @staticmethod
+    def run_create_item_table():
+        i = ItemTableMaker()
+        i.run()
 
     @staticmethod
     def run_auction_writes():
@@ -26,4 +35,4 @@ class Controller:
 
 if __name__ == '__main__':
     # placeholder
-    pass
+    Controller.run_populate_items()

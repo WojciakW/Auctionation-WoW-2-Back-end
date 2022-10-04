@@ -98,6 +98,18 @@ class QueryMixin:
         );
     """
 
+    CREATE_ITEM_TABLE = """
+        CREATE TABLE item_data(
+            wow_item_id PRIMARY KEY,
+            name VARCHAR,
+            class VARCHAR,
+            subclass VARCHAR,
+            slot VARCHAR,
+            quality VARCHAR,
+            icon_url TEXT
+        )
+    """
+
     BULK_CREATE_AUCTIONS = """
         COPY realm_%s(
             faction,
@@ -218,6 +230,20 @@ class RealmTableMaker(DatabaseConnection, QueryMixin):
             self.cursor.execute(self.CREATE_REALMS % self.REALM_LIST_EU[realm_id])
             self.connection.commit()
 
+
+class ItemTableMaker(DatabaseConnection, QueryMixin):
+    """
+        Used to setup database item table.
+
+    """
+    def __init__(self):
+        super().__init__()
+        self.cursor = self.connection.cursor()
+
+    def run(self):
+        self.cursor.execute(self.CREATE_ITEM_TABLE)
+        self.connection.commit()
+    
 
 class RealmWriteHandler(QueryMixin):
     """

@@ -203,6 +203,22 @@ class StatCalculator:
         return result
 
 
+class RealmTableMaker(DatabaseConnection, QueryMixin):
+    """
+        Used to setup database realm tables.
+
+    """
+    def __init__(self):
+        super().__init__()
+        self.cursor = self.connection.cursor()
+
+    
+    def run(self):
+        for realm_id in self.REALM_LIST_EU:
+            self.cursor.execute(self.CREATE_REALMS % self.REALM_LIST_EU[realm_id])
+            self.connection.commit()
+
+
 class RealmWriteHandler(QueryMixin):
     """
         Auction data writes handling class. 
@@ -353,7 +369,7 @@ class ItemDataPopulator(QueryMixin, DatabaseConnection):
         self.path = f'{Path(__file__).resolve().parents[1]}/out.csv'
 
     
-    def populate_data(self):
+    def run(self):
         cursor = self.connection.cursor()
         cursor.execute(self.POPULATE_ITEM_DATA % (self.path))
         self.connection.commit()

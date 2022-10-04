@@ -29,7 +29,7 @@ It is a social web app for World of Warcraft Classic live auction house statisti
  Controller's job is to cyclically fetch official WoW auction data (about 1.5M entries) **and** handle all database writes and reads on each realm. When a single API HTTP request is made, a new *ItemReadHandler* or *AuctionReadHandler* class instance is born, most willingly using as much multiprocessing power as possible.
 
  **Overall back-end diagram:**
- ![](https://github.com/WojciakW/Auctionation-WoW-2-Back-end/blob/master/imgs/diagram.png?raw=true)
+ ![](https://github.com/WojciakW/Auctionation-WoW-2-Back-end/blob/master/imgs/diagram2.png?raw=true)
 
 
 ### AuctioNation project Key features:

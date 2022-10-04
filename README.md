@@ -4,6 +4,9 @@
 *To check out the first version's source go to:
 https://github.com/WojciakW/Auctionation-WoW*
 
+*All data is provided by Blizzard's WoW Classic API.
+Item data thanks to **wow-classic-items** https://github.com/nexus-devs/wow-classic-items*
+
 It is a social web app for World of Warcraft Classic live auction house statistics created using the following:
 -   **First version (AuctioNation-WoW 1)**:
     - Python,
@@ -22,8 +25,11 @@ It is a social web app for World of Warcraft Classic live auction house statisti
     - Front-end:
         - A front-end framework (currently not decided, possibly React **TODO**)
 
-### About controller:
- It's job is to cyclically fetch official WoW auction data **and** handle all database writes and reads on each realm. When a single API HTTP request is made, a new *ItemReadHandler* or *AuctionReadHandler* class instance is born, most willingly using as much multiprocessing power as possible.
+### About:
+ Controller's job is to cyclically fetch official WoW auction data (about 1.5M entries) **and** handle all database writes and reads on each realm. When a single API HTTP request is made, a new *ItemReadHandler* or *AuctionReadHandler* class instance is born, most willingly using as much multiprocessing power as possible.
+
+ **Overall back-end diagram:**
+ ![](https://github.com/WojciakW/Auctionation-WoW-2-Back-end/blob/master/imgs/diagram.png?raw=true)
 
 
 ### AuctioNation project Key features:

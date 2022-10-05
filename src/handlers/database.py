@@ -1,5 +1,8 @@
 """
 AuctioNation2 main database handling resources.
+
+All of the below handlers are designed to contain their own method 'START()' that 
+executes operations proper to the specific class.
 """
 # --------
 # IMPORTS |
@@ -113,6 +116,25 @@ class QueryMixin:
         )
     """
 
+    CREATE_TIME_TABLE = """
+        CREATE TABLE api_request_time_record(
+            id SERIAL PRIMARY KEY,
+            api_request_time TIMESTAMP,
+            faction_sign VARCHAR(1)
+        )
+    """
+
+    INSERT_TIME_RECORD = """
+        INSERT INTO api_request_time_record(
+            api_request_time,
+            faction_sign
+        )
+        VALUES(
+            '%s',
+            '%s'
+        )
+    """
+
     BULK_CREATE_AUCTIONS = """
         COPY realm_%s(
             faction,
@@ -144,7 +166,38 @@ class QueryMixin:
     """
 
     READ_ITEM_DATA = """
-        SELECT buyout, api_request_time, quantity FROM realm_%s WHERE faction='%s' AND wow_item_id=%d
+        SELECT 
+            buyout, 
+            api_request_time, 
+            quantity 
+        FROM realm_%s 
+        WHERE faction='%s' AND wow_item_id=%d
+    """
+
+    # query to read live auctions (that is, most recent data) together with item names,
+    # also contains already half-done pagination
+    READ_AUCTION_DATA = """
+        SELECT
+            realm_{0}.wow_id, 
+            realm_{0}.wow_item_id,
+            realm_{0}.buyout, 
+            realm_{0}.quantity, 
+            realm_{0}.time_left,
+            item_data.name
+        FROM realm_{0}
+        JOIN item_data
+        ON realm_{0}.wow_item_id = item_data.wow_item_id
+        WHERE 
+            faction='{1}' 
+            AND api_request_time=(
+                SELECT api_request_time
+                FROM api_request_time_record
+                GROUP BY faction_sign, api_request_time, id
+                HAVING faction_sign='{1}' AND id=MAX(id)
+            )
+            AND name LIKE '%{2}%'
+        ORDER BY wow_id
+        OFFSET {3} FETCH NEXT {4} ROWS ONLY
     """
 
 
@@ -238,9 +291,25 @@ class ItemTableMaker(DatabaseConnection, QueryMixin):
         """
         self.cursor.execute(self.CREATE_ITEM_TABLE)
         self.connection.commit()
-    
 
-class RealmWriteHandler(QueryMixin):
+
+class DateTableMaker(DatabaseConnection, QueryMixin):
+    """
+    Uset to setup api_request_time table.
+    """
+    def __init__(self):
+        super().__init__()
+        self.cursor = self.connection.cursor()
+    
+    def START(self):
+        """
+        Run all the operations
+        """
+        self.cursor.execute(self.CREATE_TIME_TABLE)
+        self.connection.commit()
+
+
+class RealmWriteHandler(DatabaseConnection, QueryMixin):
     """
     Auction data writes handling class. 
     """
@@ -250,6 +319,16 @@ class RealmWriteHandler(QueryMixin):
         self.faction_sign = faction_sign
         self.cache_path = f'{Path(__file__).resolve().parents[1]}/cache/'
         self.time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # insert proper api_request_time record along the object construction
+        self.cursor = self.connection.cursor()
+        self.cursor.execute(
+            self.INSERT_TIME_RECORD % (
+                self.time,
+                self.faction_sign
+            )
+        )
+        self.connection.commit()
 
     
     def _set_auction_data(self, realm_id: int) -> dict:
@@ -397,13 +476,7 @@ class ItemReadHandler(DatabaseConnection, QueryMixin):
     """
     Item data reads handling class.
     """
-    def __init__(
-            self, 
-            realm_name:     str, 
-            faction_sign:   str, 
-            wow_item_id:    int
-        ):
-
+    def __init__(self, realm_name: str, faction_sign: str, wow_item_id: int):
         super().__init__()
 
         self._realm_name =   realm_name
@@ -460,19 +533,51 @@ class AuctionReadHandler(DatabaseConnection, QueryMixin):
     """
     Auction data reads handling class.
     """
-    def __init__(
-            self, 
-            realm_name:     str, 
-            faction_sign:   str,
-            item_slug:      str
-        ):
-
+    def __init__(self, realm_name: str, faction_sign: str, item_slug: str,
+                 page: int, limit: int):
         super().__init__()
 
         self._realm_name =   realm_name
         self._faction_sign = faction_sign
         self._item_slug =    item_slug
 
-    def read_data(self):
-        # placeholder
-        pass
+        # pagination params
+        self._page =         page
+        self._limit =        limit
+
+        # declare how many entries to skip from start
+        self._offset =       (self._page - 1) * self._limit
+
+        self.cursor = self.connection.cursor()
+
+        # output is set as an instance attribute
+        self.response = self._read_data()
+
+    def _read_data(self):
+        self.cursor.execute(
+            self.READ_AUCTION_DATA.format(
+                self._realm_name,
+                self._faction_sign,
+                self._item_slug,
+                self._offset,
+                self._limit
+            )
+        )
+
+        fetched_data = self.cursor.fetchall()
+        result = []
+        for row in fetched_data:
+            # serializing
+            result.append(
+                {
+                    'auction_id': row[0], 
+                    'data': {
+                        'wow_item_id':  row[1],
+                        'buyout':       row[2],
+                        'quantity':     row[3],
+                        'time_left':    row[4],
+                        'item_name':    row[5]
+                    }
+                }
+            )
+        return result

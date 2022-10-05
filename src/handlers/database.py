@@ -185,7 +185,8 @@ class QueryMixin:
             realm_{0}.buyout, 
             realm_{0}.quantity, 
             realm_{0}.time_left,
-            item_data.name
+            item_data.name,
+            item_data.icon_url
         FROM realm_{0}
         JOIN item_data
         ON realm_{0}.wow_item_id = item_data.wow_item_id
@@ -574,11 +575,12 @@ class AuctionReadHandler(DatabaseConnection, QueryMixin):
                 {
                     'auction_id': row[0], 
                     'data': {
-                        'wow_item_id':  row[1],
-                        'buyout':       row[2],
-                        'quantity':     row[3],
-                        'time_left':    row[4],
-                        'item_name':    row[5]
+                        'wow_item_id':      row[1],
+                        'buyout':           row[2],
+                        'quantity':         row[3],
+                        'time_left':        row[4],
+                        'item_name':        row[5],
+                        'item_icon_url':    row[6]
                     }
                 }
             )

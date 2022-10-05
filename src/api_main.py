@@ -43,6 +43,10 @@ async def response_auction_data(realm_name: str, faction_sign: str, wow_item_slu
     if limit > 100:
         raise HTTPException(status_code=413)
 
+    # wrong realm name handling
+    if realm_name not in ItemReadHandler.REALM_LIST_EU.values():
+        raise HTTPException(status_code=404)
+
     # spawn new handler instance, collect all entries based on given pagination parameters
     a = AuctionReadHandler(
         realm_name=     realm_name,

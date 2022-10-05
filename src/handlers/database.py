@@ -108,6 +108,7 @@ class QueryMixin:
         CREATE TABLE item_data(
             wow_item_id SERIAL PRIMARY KEY,
             name VARCHAR,
+            name_slug VARCHAR DEFAULT NULL,
             class VARCHAR,
             subclass VARCHAR,
             slot VARCHAR,
@@ -154,6 +155,7 @@ class QueryMixin:
         COPY item_data(
             wow_item_id,
             name,
+            name_slug,
             class,
             subclass,
             slot,
@@ -195,7 +197,7 @@ class QueryMixin:
                 GROUP BY faction_sign, api_request_time, id
                 HAVING faction_sign='{1}' AND id=MAX(id)
             )
-            AND name LIKE '%{2}%'
+            AND name_slug LIKE '%{2}%'
         ORDER BY wow_id
         OFFSET {3} FETCH NEXT {4} ROWS ONLY
     """

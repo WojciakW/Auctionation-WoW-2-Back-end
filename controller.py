@@ -2,7 +2,9 @@ from src.handlers.database import (
     RealmWriteHandler, 
     ItemDataPopulator,
     RealmTableMaker,
-    ItemTableMaker
+    ItemTableMaker,
+    DateTableMaker,
+    AuctionReadHandler
 )
 
 
@@ -23,6 +25,14 @@ class Controller:
         Setup PostgreSQL Item table 'item_data'.
         """
         cls.handler = ItemTableMaker()
+        cls.handler.START()
+    
+    @classmethod
+    def RUN_create_time_table(cls) -> None:
+        """
+        Setup PostgreSQL BlizzAPI request time record table 'api_request_time_record'.
+        """
+        cls.handler = DateTableMaker()
         cls.handler.START()
 
     @classmethod

@@ -120,18 +120,15 @@ class QueryMixin:
     CREATE_TIME_TABLE = """
         CREATE TABLE api_request_time_record(
             id SERIAL PRIMARY KEY,
-            api_request_time TIMESTAMP,
-            faction_sign VARCHAR(1)
+            api_request_time TIMESTAMP
         )
     """
 
     INSERT_TIME_RECORD = """
         INSERT INTO api_request_time_record(
-            api_request_time,
-            faction_sign
+            api_request_time
         )
         VALUES(
-            '%s',
             '%s'
         )
     """
@@ -195,8 +192,10 @@ class QueryMixin:
             AND api_request_time=(
                 SELECT api_request_time
                 FROM api_request_time_record
-                GROUP BY faction_sign, api_request_time, id
-                HAVING faction_sign='{1}' AND id=MAX(id)
+                WHERE id=(
+                    SELECT MAX(id) 
+                    FROM api_request_time_record
+                )
             )
             AND name_slug LIKE '%{2}%'
         ORDER BY wow_id
@@ -316,42 +315,34 @@ class RealmWriteHandler(DatabaseConnection, QueryMixin):
     """
     Auction data writes handling class. 
     """
-    def __init__(self, faction_sign: str) -> None:
+    def __init__(self) -> None:
         super().__init__()
 
-        self.faction_sign = faction_sign
         self.cache_path = f'{Path(__file__).resolve().parents[1]}/cache/'
         self.time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         # insert proper api_request_time record along the object construction
         self.cursor = self.connection.cursor()
-        self.cursor.execute(
-            self.INSERT_TIME_RECORD % (
-                self.time,
-                self.faction_sign
-            )
-        )
+        self.cursor.execute(self.INSERT_TIME_RECORD % self.time)
         self.connection.commit()
-
     
-    def _set_auction_data(self, realm_id: int) -> dict:
+    def _set_auction_data(self, realm_id: int, faction_sign: str) -> dict:
         """
         Fetches live auctions data from BlizzAPI and returns it as deserialized JSON.
         """
 
         api = BlizzApi(
-            f'https://eu.api.blizzard.com/data/wow/connected-realm/{realm_id}/auctions/{self.FACTIONS[self.faction_sign]}?namespace=dynamic-classic-eu&locale=en_GB&access_token=')
+            f'https://eu.api.blizzard.com/data/wow/connected-realm/{realm_id}/auctions/{self.FACTIONS[faction_sign]}?namespace=dynamic-classic-eu&locale=en_GB&access_token=')
         api.get_response()
 
         # connection timeout error handling
         if api.timeout:
-            print(f'BlizzAPI request for realm id: {realm_id}, {self.faction_sign} timed out.')
+            print(f'BlizzAPI request for realm id: {realm_id}, {faction_sign} timed out.')
             raise TimeoutError
 
         return json.loads(api.response.content)
 
-
-    def _bulk_write(self, realm_id: int) -> None:
+    def _bulk_write(self, realm_id: int, faction_sign: str) -> None:
         """
         Does a 'bulk write' operation based on SQL COPY query from a .csv cache file.
         """
@@ -372,7 +363,7 @@ class RealmWriteHandler(DatabaseConnection, QueryMixin):
                     self.REALM_LIST_EU[realm_id],
                     self.cache_path,
                     realm_id,
-                    self.faction_sign
+                    faction_sign
                 )
             )
 
@@ -380,22 +371,22 @@ class RealmWriteHandler(DatabaseConnection, QueryMixin):
         connection.close()
 
 
-    def _cache_auction_data(self, realm_id: int) -> bool:
+    def _cache_auction_data(self, realm_id: int, faction_sign: str) -> bool:
         """
         Writes temporary .csv file into cache/ directory for further SQL import purpose.
         Returns False in case operation failed, True otherwise.
         """
-        auction_data = self._set_auction_data(realm_id)
+        auction_data = self._set_auction_data(realm_id, faction_sign)
 
         # ignore empty Auction Houses and break
         if not auction_data.get('auctions'):  
-            print(f'None auctions in realm_id id: {realm_id}, {self.faction_sign}')
+            print(f'None auctions in realm_id id: {realm_id}, {faction_sign}')
             return False
 
-        print(f'Caching auctions data from realm id: {realm_id}, {self.faction_sign} faction ({len(auction_data.get("auctions"))} entries)')
+        print(f'Caching auctions data from realm id: {realm_id}, {faction_sign} faction ({len(auction_data.get("auctions"))} entries)')
 
         # create .csv file
-        with open(f'{self.cache_path}/{realm_id}_{self.faction_sign}.csv', 'w', newline='') as csvfile:
+        with open(f'{self.cache_path}/{realm_id}_{faction_sign}.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             
             # write header
@@ -428,7 +419,7 @@ class RealmWriteHandler(DatabaseConnection, QueryMixin):
                     time_left = 4
 
                 writer.writerow([
-                    self.faction_sign,
+                    faction_sign,
                     line.get('id'),
                     line.get('item').get('id'),
                     line.get('buyout'),
@@ -439,23 +430,23 @@ class RealmWriteHandler(DatabaseConnection, QueryMixin):
 
         return True
 
-    def _clear_cache(self, realm_id: int) -> None:
+    def _clear_cache(self, realm_id: int, faction_sign: str) -> None:
         """
         Removes .csv cache file.
         """
-        os.remove(f'{self.cache_path}/{realm_id}_{self.faction_sign}.csv')
+        os.remove(f'{self.cache_path}/{realm_id}_{faction_sign}.csv')
 
     @MultiprocessManager.process_mark    
-    def START(self, realm_id: int) -> None:
+    def START(self, realm_id: int, faction_sign: str) -> None:
         """
         Run all the operations. Each method call spawns a new process.
         """
         # break in case of an empty Auction House:
-        if not self._cache_auction_data(realm_id):
+        if not self._cache_auction_data(realm_id, faction_sign):
             return None
 
-        self._bulk_write(realm_id)
-        self._clear_cache(realm_id)
+        self._bulk_write(realm_id, faction_sign)
+        self._clear_cache(realm_id, faction_sign)
 
 
 class ItemDataPopulator(QueryMixin, DatabaseConnection):

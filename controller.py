@@ -40,13 +40,10 @@ class Controller:
         """
         Fetch and write all the live auctions data.
         """
-        cls.handler = RealmWriteHandler('a')
+        cls.handler = RealmWriteHandler()
         for realm_id in cls.handler.REALM_LIST_EU:
-            cls.handler.START(realm_id)
-
-        cls.handler = RealmWriteHandler('h')
-        for realm_id in cls.handler.REALM_LIST_EU:
-            cls.handler.START(realm_id)
+            cls.handler.START(realm_id, 'a')
+            cls.handler.START(realm_id, 'h')
 
     @classmethod
     def RUN_populate_items(cls) -> None:
@@ -59,4 +56,3 @@ class Controller:
 
 if __name__ == '__main__':
     # placeholder
-    pass

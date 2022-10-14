@@ -173,6 +173,14 @@ class QueryMixin:
         WHERE faction='%s' AND wow_item_id=%d
     """
 
+    READ_ITEM_SEARCH = """
+        SELECT 
+            * 
+        FROM item_data 
+        WHERE name_slug LIKE '%{0}%'
+        OFFSET {1} FETCH NEXT {2} ROWS ONLY
+    """
+
     # query to read live auctions (that is, most recent data) together with item names,
     # also contains already half-done pagination
     READ_AUCTION_DATA = """
@@ -521,6 +529,50 @@ class ItemReadHandler(DatabaseConnection, QueryMixin):
             price_date_map[date_value].append(buyout_value / quantity_value) 
 
         return price_date_map
+    
+
+class ItemSearchHandler(DatabaseConnection, QueryMixin):
+    """
+    Item read by search query handling class.
+    """
+    def __init__(self, item_slug: str, page: int, limit: int):
+        super().__init__()
+        self.cursor = self.connection.cursor()
+
+        self._item_slug = item_slug
+
+        # pagination params
+        self._page = page
+        self._limit = limit
+
+        self.response = self._read_data()
+
+    def _read_data(self):
+        self.cursor.execute(
+            self.READ_ITEM_SEARCH.format(
+                self._item_slug,
+                self._page,
+                self._limit
+            )
+        )
+        fetched_data = self.cursor.fetchall()
+        result = []
+        for row in fetched_data:
+            result.append(
+                {
+                    'wow_item_id': row[0],
+                    'data': {
+                        'name':         row[1],
+                        'name_slug':    row[2],
+                        'class':        row[3],
+                        'subclass':     row[4],
+                        'slot':         row[5],
+                        'quality':      row[6],
+                        'icon_url':     row[7]
+                    }
+                }
+            )
+        return result
 
 
 class AuctionReadHandler(DatabaseConnection, QueryMixin):

@@ -1,7 +1,7 @@
 from curses import raw
 from fastapi import FastAPI, HTTPException
 import json
-from handlers.database import ItemReadHandler, AuctionReadHandler
+from handlers.database import ItemReadHandler, AuctionReadHandler, ItemSearchHandler
 
 
 app = FastAPI()
@@ -57,3 +57,22 @@ async def response_auction_data(realm_name: str, faction_sign: str, wow_item_slu
     )
     return a.response
 
+
+@app.get("/item_search/{wow_item_slug}/")
+async def response_item_search(wow_item_slug: str, page: int = 1, limit: int = 20):
+    """
+    Returns all WoW items found by given search query, together with their specific WoW data.
+    Query params: page - results page number (default 1), 
+    limit - maximum number of entries per page (defaul 20).
+    """
+    # hardcoded query limit for safety purposes, raises 413: 'Payload Too Large'
+    if limit > 100:
+        raise HTTPException(status_code=413)
+
+    # spawn new handler instance, collect all entries
+    i = ItemSearchHandler(
+        item_slug=      wow_item_slug,
+        page=           page,
+        limit=          limit
+    )
+    return i.response

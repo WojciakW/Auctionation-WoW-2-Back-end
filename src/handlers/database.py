@@ -544,6 +544,8 @@ class ItemSearchHandler(DatabaseConnection, QueryMixin):
         # pagination params
         self._page = page
         self._limit = limit
+        # declare how many entries to skip from start
+        self._offset = (self._page - 1) * self._limit
 
         self.response = self._read_data()
 
@@ -551,7 +553,7 @@ class ItemSearchHandler(DatabaseConnection, QueryMixin):
         self.cursor.execute(
             self.READ_ITEM_SEARCH.format(
                 self._item_slug,
-                self._page,
+                self._offset,
                 self._limit
             )
         )

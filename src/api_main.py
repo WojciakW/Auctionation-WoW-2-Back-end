@@ -1,10 +1,22 @@
-from curses import raw
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import json
 from handlers.database import ItemReadHandler, AuctionReadHandler, ItemSearchHandler
 
 
 app = FastAPI()
+
+origins = [
+    'http://127.0.0.1:3000',
+    'http://localhost:3000'
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 
 @app.get("/items/{realm_name}/{faction_sign}/{wow_item_id}/")

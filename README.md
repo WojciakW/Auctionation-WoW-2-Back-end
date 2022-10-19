@@ -18,12 +18,16 @@ It is a social web app for World of Warcraft Classic live auction house statisti
 -   **Second version (AuctioNation-WoW 2)**:
     - **Back-end**:
         - Python,
-        - PostgreSQL Database
-        - Custom reads/writes controller using *psycopg2*, *numpy* and *multiprocessing* (**in progress**),
-        - API request/response handling using FastAPI (**TODO**),
+        - PostgreSQL Database,
+        - Custom reads/writes controller using *psycopg2*, *numpy* and *multiprocessing* ,
+        - API request/response handling using FastAPI (**in progress**),
+        - User-related ORM (**in progress**),
         - Linux cron job scheduler (**TODO**)
     - Front-end:
-        - A front-end framework (currently not decided, possibly React **TODO**)
+        - base HTML, CSS, JavaScript,
+        - ReactJS (**in progress**),
+        - React Router (**TODO**),
+        - React Redux (**TODO**)
 
 ### About:
  Controller's job is to cyclically fetch official WoW auction data (about 1.5M entries) **and** handle all database writes and reads on each realm. When a single API HTTP request is made, a new *ItemReadHandler* or *AuctionReadHandler* class instance is born, most willingly using as much multiprocessing power as possible.
@@ -32,12 +36,12 @@ It is a social web app for World of Warcraft Classic live auction house statisti
  ![](https://github.com/WojciakW/Auctionation-WoW-2-Back-end/blob/master/imgs/diagram2.png?raw=true)
 
 
-### AuctioNation project Key features:
+### AuctioNation 2 project Key features:
 - Automated 1-hour-cycle database handling:
   - fetching live World of Warcraft auctions data from official Blizzard API,
   - computing various statistics,
   - archiving data.
-- Possibility to view every single item data on every official realm, faction side, that is:
+- Possibility to view every single item data history on every official EU realm, faction side, that is:
   - auctions count,
   - lowest buyout,
   - mean buyout,
@@ -45,7 +49,5 @@ It is a social web app for World of Warcraft Classic live auction house statisti
 - Data presented in form of graphs,
 - User account base,
 - Support for comments on any item stats,
-- Various UX, like:
-    - one field for item OR auction search,
-    - dynamic page rewriting,
-    - user Observed items list,
+- User Observed Items list,
+- Whole app as a SPA

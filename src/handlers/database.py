@@ -1,7 +1,7 @@
 """
 AuctioNation2 main database handling resources.
 
-All of the below handlers are designed to contain their own method 'START()' that 
+All of the below write handlers are designed to contain their own method 'START()' that 
 executes operations proper to the specific class.
 """
 # --------
@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .connection import BlizzApi, DatabaseConnection
 from .exceptions import TimeoutError
-from .multiprocess import MultiprocessManager
+import multiprocess_manager
 from .local_settings import USER, PASSWORD
 
 import json
@@ -91,7 +91,7 @@ class QueryMixin:
         'h': 6
     }
 
-    CREATE_REALMS = """
+    CREATE_REALMS = """--sql
         CREATE TABLE realm_%s(
             id SERIAL PRIMARY KEY,
             faction VARCHAR(1),
@@ -104,7 +104,7 @@ class QueryMixin:
         );
     """
 
-    CREATE_ITEM_TABLE = """
+    CREATE_ITEM_TABLE = """--sql
         CREATE TABLE item_data(
             wow_item_id SERIAL PRIMARY KEY,
             name VARCHAR,
@@ -117,14 +117,14 @@ class QueryMixin:
         )
     """
 
-    CREATE_TIME_TABLE = """
+    CREATE_TIME_TABLE = """--sql
         CREATE TABLE api_request_time_record(
             id SERIAL PRIMARY KEY,
             api_request_time TIMESTAMP
         )
     """
 
-    INSERT_TIME_RECORD = """
+    INSERT_TIME_RECORD = """--sql
         INSERT INTO api_request_time_record(
             api_request_time
         )
@@ -133,7 +133,7 @@ class QueryMixin:
         )
     """
 
-    BULK_CREATE_AUCTIONS = """
+    BULK_CREATE_AUCTIONS = """--sql
         COPY realm_%s(
             faction,
             wow_id,
@@ -148,7 +148,7 @@ class QueryMixin:
         CSV HEADER;
     """
 
-    POPULATE_ITEM_DATA = """
+    POPULATE_ITEM_DATA = """--sql
         COPY item_data(
             wow_item_id,
             name,
@@ -164,7 +164,7 @@ class QueryMixin:
         CSV HEADER;
     """
 
-    READ_ITEM_DATA = """
+    READ_ITEM_DATA = """--sql
         SELECT 
             buyout, 
             api_request_time, 
@@ -173,7 +173,7 @@ class QueryMixin:
         WHERE faction='%s' AND wow_item_id=%d
     """
 
-    READ_ITEM_SEARCH = """
+    READ_ITEM_SEARCH = """--sql
         SELECT 
             * 
         FROM item_data 
@@ -183,7 +183,7 @@ class QueryMixin:
 
     # query to read live auctions (that is, most recent data) together with item names,
     # also contains already half-done pagination
-    READ_AUCTION_DATA = """
+    READ_AUCTION_DATA = """--sql
         SELECT
             realm_{0}.wow_id, 
             realm_{0}.wow_item_id,
@@ -444,7 +444,7 @@ class RealmWriteHandler(DatabaseConnection, QueryMixin):
         """
         os.remove(f'{self.cache_path}/{realm_id}_{faction_sign}.csv')
 
-    @MultiprocessManager.process_mark    
+    @multiprocess_manager.process_mark    
     def START(self, realm_id: int, faction_sign: str) -> None:
         """
         Run all the operations. Each method call spawns a new process.
@@ -488,7 +488,7 @@ class ItemReadHandler(DatabaseConnection, QueryMixin):
         self._raw_data = self._read_raw_data()
 
         # overall output is set as an instance attribute utilizing multiprocessing's "Pool"
-        self.response = MultiprocessManager.compute_reads(
+        self.response = multiprocess_manager.compute_reads(
             func1=  StatsCalculator.get_lowest,
             func2=  StatsCalculator.get_mean,
             func3=  StatsCalculator.get_median,

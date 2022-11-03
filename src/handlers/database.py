@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .connection import BlizzApi, DatabaseConnection
 from .exceptions import TimeoutError
-import multiprocess_manager
+from . import multiprocess_manager
 from .local_settings import USER, PASSWORD
 
 import json
@@ -153,7 +153,7 @@ class QueryMixin:
             wow_item_id,
             name,
             name_slug,
-            class,
+            class_,
             subclass,
             slot,
             quality,
@@ -287,20 +287,22 @@ class RealmTableMaker(DatabaseConnection, QueryMixin):
             self.connection.commit()
 
 
-class ItemTableMaker(DatabaseConnection, QueryMixin):
-    """
-    Used to setup database item table.
-    """
-    def __init__(self):
-        super().__init__()
-        self.cursor = self.connection.cursor()
+# --- Item data table setup migrated to ORM --- 
+#
+# class ItemTableMaker(DatabaseConnection, QueryMixin):
+#     """
+#     Used to setup database item table.
+#     """
+#     def __init__(self):
+#         super().__init__()
+#         self.cursor = self.connection.cursor()
 
-    def START(self):
-        """
-        Run all the operations.
-        """
-        self.cursor.execute(self.CREATE_ITEM_TABLE)
-        self.connection.commit()
+#     def START(self):
+#         """
+#         Run all the operations.
+#         """
+#         self.cursor.execute(self.CREATE_ITEM_TABLE)
+#         self.connection.commit()
 
 
 class DateTableMaker(DatabaseConnection, QueryMixin):

@@ -2,7 +2,6 @@ from src.handlers.database import (
     RealmWriteHandler, 
     ItemDataPopulator,
     RealmTableMaker,
-    ItemTableMaker,
     DateTableMaker,
     AuctionReadHandler
 )
@@ -19,14 +18,6 @@ class Controller:
         cls.handler = RealmTableMaker()
         cls.handler.START()
 
-    @classmethod
-    def RUN_create_item_table(cls) -> None:
-        """
-        Setup PostgreSQL Item table 'item_data'.
-        """
-        cls.handler = ItemTableMaker()
-        cls.handler.START()
-    
     @classmethod
     def RUN_create_time_table(cls) -> None:
         """

@@ -1,5 +1,6 @@
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const Database = require('wow-classic-items');
+
 const slugify = require('slugify');
 
 const csvWriter = createCsvWriter({

@@ -1,14 +1,13 @@
 """
 AuctioNation2 main database handling resources.
-
-All of the below write handlers are designed to contain their own method 'START()' that 
-executes operations proper to the specific class.
 """
+
 # --------
 # IMPORTS |
 # --------
 from datetime import datetime, date
 from pathlib import Path
+from abc import ABC, abstractmethod
 
 from .connection import BlizzApi, DatabaseConnection
 from .exceptions import TimeoutError
@@ -269,19 +268,27 @@ class StatsCalculator:
         return result
 
 
-class RealmTableMaker(DatabaseConnection, QueryMixin):
+class BaseHandler(ABC):
+    """
+    Abstract base handler class.
+    """
+    @abstractmethod
+    def START(self):
+        """
+        Run all the handler specific operations.
+        """
+        pass
+
+
+class RealmTableMaker(BsaeHandler, DatabaseConnection, QueryMixin):
     """
     Used to setup database realm tables.
     """
     def __init__(self):
         super().__init__()
         self.cursor = self.connection.cursor()
-
     
     def START(self):
-        """
-        Run all the operations.
-        """
         for realm_id in self.REALM_LIST_EU:
             self.cursor.execute(self.CREATE_REALMS % self.REALM_LIST_EU[realm_id])
             self.connection.commit()
@@ -305,7 +312,7 @@ class RealmTableMaker(DatabaseConnection, QueryMixin):
 #         self.connection.commit()
 
 
-class DateTableMaker(DatabaseConnection, QueryMixin):
+class DateTableMaker(BaseHandler, DatabaseConnection, QueryMixin):
     """
     Uset to setup api_request_time table.
     """
@@ -314,14 +321,11 @@ class DateTableMaker(DatabaseConnection, QueryMixin):
         self.cursor = self.connection.cursor()
     
     def START(self):
-        """
-        Run all the operations
-        """
         self.cursor.execute(self.CREATE_TIME_TABLE)
         self.connection.commit()
 
 
-class RealmWriteHandler(DatabaseConnection, QueryMixin):
+class RealmWriteHandler(BaseHandler, DatabaseConnection, QueryMixin):
     """
     Auction data writes handling class. 
     """
@@ -449,7 +453,7 @@ class RealmWriteHandler(DatabaseConnection, QueryMixin):
     @multiprocess_manager.process_mark    
     def START(self, realm_id: int, faction_sign: str) -> None:
         """
-        Run all the operations. Each method call spawns a new process.
+        Each method call spawns a new process.
         """
         # break in case of an empty Auction House:
         if not self._cache_auction_data(realm_id, faction_sign):
@@ -459,7 +463,7 @@ class RealmWriteHandler(DatabaseConnection, QueryMixin):
         self._clear_cache(realm_id, faction_sign)
 
 
-class ItemDataPopulator(QueryMixin, DatabaseConnection):
+class ItemDataPopulator(BaseHandler, QueryMixin, DatabaseConnection):
     """
      Used to populate item data table.
     """
@@ -468,15 +472,12 @@ class ItemDataPopulator(QueryMixin, DatabaseConnection):
         self.path = f'{Path(__file__).resolve().parents[1]}/out.csv'
 
     def START(self) -> None:
-        """
-        Run all the operations.
-        """
         cursor = self.connection.cursor()
         cursor.execute(self.POPULATE_ITEM_DATA % (self.path))
         self.connection.commit()
 
 
-class ItemReadHandler(DatabaseConnection, QueryMixin):
+class ItemReadHandler(BaseHandler, DatabaseConnection, QueryMixin):
     """
     Item data reads handling class.
     """
@@ -533,7 +534,7 @@ class ItemReadHandler(DatabaseConnection, QueryMixin):
         return price_date_map
     
 
-class ItemSearchHandler(DatabaseConnection, QueryMixin):
+class ItemSearchHandler(BaseHandler, DatabaseConnection, QueryMixin):
     """
     Item read by search query handling class.
     """
@@ -579,7 +580,7 @@ class ItemSearchHandler(DatabaseConnection, QueryMixin):
         return result
 
 
-class AuctionReadHandler(DatabaseConnection, QueryMixin):
+class AuctionReadHandler(BaseHandler, DatabaseConnection, QueryMixin):
     """
     Auction data reads handling class.
     """

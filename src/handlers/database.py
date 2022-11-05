@@ -280,7 +280,7 @@ class BaseHandler(ABC):
         pass
 
 
-class RealmTableMaker(BsaeHandler, DatabaseConnection, QueryMixin):
+class RealmTableMaker(BaseHandler, DatabaseConnection, QueryMixin):
     """
     Used to setup database realm tables.
     """

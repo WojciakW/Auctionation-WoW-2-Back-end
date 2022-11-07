@@ -332,7 +332,7 @@ class RealmWriteHandler(BaseHandler, DatabaseConnection, QueryMixin):
     def __init__(self) -> None:
         super().__init__()
 
-        self.cache_path = f'{Path(__file__).resolve().parents[1]}/cache/'
+        self.cache_path: str = f'{Path(__file__).resolve().parents[1]}/cache/'
         self.time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         # insert proper api_request_time record along the object construction

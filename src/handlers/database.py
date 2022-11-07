@@ -288,6 +288,9 @@ class RealmTableMaker(BaseHandler, DatabaseConnection, QueryMixin):
     def __init__(self):
         super().__init__()
         self.cursor = self.connection.cursor()
+
+    def __repr__(self) -> str:
+        return 'RealmTableMaker'
     
     def START(self):
         for realm_id in self.REALM_LIST_EU:
@@ -321,6 +324,9 @@ class DateTableMaker(BaseHandler, DatabaseConnection, QueryMixin):
         super().__init__()
         self.cursor = self.connection.cursor()
     
+    def __repr__(self) -> str:
+        return 'DateTableMaker'
+    
     def START(self):
         self.cursor.execute(self.CREATE_TIME_TABLE)
         self.connection.commit()
@@ -340,6 +346,9 @@ class RealmWriteHandler(BaseHandler, DatabaseConnection, QueryMixin):
         self.cursor = self.connection.cursor()
         self.cursor.execute(self.INSERT_TIME_RECORD % self.time)
         self.connection.commit()
+    
+    def __repr__(self) -> str:
+        return 'RealmWriteHandler()'
     
     def _set_auction_data(self, realm_id: int, faction_sign: str) -> dict:
         """
@@ -471,6 +480,9 @@ class ItemDataPopulator(BaseHandler, QueryMixin, DatabaseConnection):
     def __init__(self) -> None:
         super().__init__()
         self.path: str = f'{Path(__file__).resolve().parents[1]}/out.csv'
+    
+    def __repr__(self) -> str:
+        return f'ItemDataPopulator()'
 
     def START(self) -> None:
         cursor = self.connection.cursor()
@@ -499,6 +511,9 @@ class ItemReadHandler(BaseHandler, DatabaseConnection, QueryMixin):
             func4=  StatsCalculator.get_count,
             data=   self._raw_data
         )
+
+    def __repr__(self) -> str:
+        return f'ItemReadHandler({self._realm_name, self._faction_sign, self._wow_item_id})'
 
     def __str__(self) -> str:
         return f'ItemReadHandler instance: {self._realm_name}, {self._faction_sign}, {self._wow_item_id}'
@@ -552,6 +567,9 @@ class ItemSearchHandler(BaseHandler, DatabaseConnection, QueryMixin):
         self._offset = (self._page - 1) * self._limit
 
         self.response = self._read_data()
+    
+    def __repr__(self) -> str:
+        return f'ItemSearchHandler({self._item_slug, self._page, self._limit})'
 
     def _read_data(self) -> List[dict]:
         self.cursor.execute(
@@ -604,6 +622,10 @@ class AuctionReadHandler(BaseHandler, DatabaseConnection, QueryMixin):
 
         # output is set as an instance attribute
         self.response = self._read_data()
+
+    def __repr__(self) -> str:
+        return 'AuctionReadHandler({0}, {1}, {2}, {3}, {4}, {5})'.format(self._realm_name, self._faction_sign,
+                                                                    self._item_slug, self._page, self._limit)
 
     def _read_data(self) -> List[dict]:
         self.cursor.execute(

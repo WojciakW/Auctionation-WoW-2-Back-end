@@ -8,6 +8,7 @@ AuctioNation2 main database handling resources.
 from datetime import datetime, date
 from pathlib import Path
 from abc import ABC, abstractmethod
+from typing import Dict, List
 
 from .connection import BlizzApi, DatabaseConnection
 from .exceptions import TimeoutError
@@ -39,7 +40,7 @@ class QueryMixin:
     """
     Mixin to contain SQL query-oriented constants.
     """
-    REALM_LIST_EU = {
+    REALM_LIST_EU: Dict[int, str] = {
         4440: 'everlook',
         4441: 'auberdine',
         4442: 'lakeshire',
@@ -85,12 +86,12 @@ class QueryMixin:
         4813: 'mandokir'
     }
 
-    FACTIONS = {
+    FACTIONS: Dict[str, int] = {
         'a': 2,
         'h': 6
     }
 
-    CREATE_REALMS = """--sql
+    CREATE_REALMS: str = """--sql
         CREATE TABLE realm_%s(
             id SERIAL PRIMARY KEY,
             faction VARCHAR(1),
@@ -103,7 +104,7 @@ class QueryMixin:
         );
     """
 
-    CREATE_ITEM_TABLE = """--sql
+    CREATE_ITEM_TABLEL: str = """--sql
         CREATE TABLE item_data(
             wow_item_id SERIAL PRIMARY KEY,
             name VARCHAR,
@@ -116,14 +117,14 @@ class QueryMixin:
         )
     """
 
-    CREATE_TIME_TABLE = """--sql
+    CREATE_TIME_TABLE: str = """--sql
         CREATE TABLE api_request_time_record(
             id SERIAL PRIMARY KEY,
             api_request_time TIMESTAMP
         )
     """
 
-    INSERT_TIME_RECORD = """--sql
+    INSERT_TIME_RECORD: str = """--sql
         INSERT INTO api_request_time_record(
             api_request_time
         )
@@ -132,7 +133,7 @@ class QueryMixin:
         )
     """
 
-    BULK_CREATE_AUCTIONS = """--sql
+    BULK_CREATE_AUCTIONS: str = """--sql
         COPY realm_%s(
             faction,
             wow_id,
@@ -147,7 +148,7 @@ class QueryMixin:
         CSV HEADER;
     """
 
-    POPULATE_ITEM_DATA = """--sql
+    POPULATE_ITEM_DATA: str = """--sql
         COPY item_data(
             wow_item_id,
             name,
@@ -163,7 +164,7 @@ class QueryMixin:
         CSV HEADER;
     """
 
-    READ_ITEM_DATA = """--sql
+    READ_ITEM_DATA: str = """--sql
         SELECT 
             buyout, 
             api_request_time, 
@@ -172,7 +173,7 @@ class QueryMixin:
         WHERE faction='%s' AND wow_item_id=%d
     """
 
-    READ_ITEM_SEARCH = """--sql
+    READ_ITEM_SEARCH: str = """--sql
         SELECT 
             * 
         FROM item_data 
@@ -182,7 +183,7 @@ class QueryMixin:
 
     # query to read live auctions (that is, most recent data) together with item names,
     # also contains already half-done pagination
-    READ_AUCTION_DATA = """--sql
+    READ_AUCTION_DATA: str = """--sql
         SELECT
             realm_{0}.wow_id, 
             realm_{0}.wow_item_id,
@@ -212,7 +213,7 @@ class QueryMixin:
 
 class StatsCalculator:
     """
-    Main static class used for various statistical computions. 
+    Main static class used for various statistical calculations. 
     Implemented to provide scalability and abstraction.
     """
     @staticmethod
@@ -220,7 +221,7 @@ class StatsCalculator:
         """
         Returns mean price per item unit for all the entries collected by different api_request_time.
         """
-        result = {}
+        result: Dict[str, float] = {}
 
         for entry in data:
             prices_list = data.get(entry)
@@ -234,7 +235,7 @@ class StatsCalculator:
         """
         Returns item auctions count for all the entries collected by different api_request_time.
         """
-        result = {}
+        result: Dict[str, int] = {}
 
         for entry in data:
             result[entry] = len(data.get(entry))
@@ -246,7 +247,7 @@ class StatsCalculator:
         """
         Returns median price per item unit for all the entries collected by different api_request_time
         """
-        result = {}
+        result: Dict[str, int] = {}
 
         for entry in data:
             prices_list = data.get(entry)
@@ -260,7 +261,7 @@ class StatsCalculator:
         """
         Returns lowest price per item unit for all the entries collected by different api_request_time
         """
-        result = {}
+        result: Dict[str, int] = {}
 
         for entry in data:
             result[entry] = min(data.get(entry))
@@ -333,7 +334,7 @@ class RealmWriteHandler(BaseHandler, DatabaseConnection, QueryMixin):
         super().__init__()
 
         self.cache_path: str = f'{Path(__file__).resolve().parents[1]}/cache/'
-        self.time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.time: str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         # insert proper api_request_time record along the object construction
         self.cursor = self.connection.cursor()
@@ -469,7 +470,7 @@ class ItemDataPopulator(BaseHandler, QueryMixin, DatabaseConnection):
     """
     def __init__(self) -> None:
         super().__init__()
-        self.path = f'{Path(__file__).resolve().parents[1]}/out.csv'
+        self.path: str = f'{Path(__file__).resolve().parents[1]}/out.csv'
 
     def START(self) -> None:
         cursor = self.connection.cursor()
@@ -491,7 +492,7 @@ class ItemReadHandler(BaseHandler, DatabaseConnection, QueryMixin):
         self._raw_data = self._read_raw_data()
 
         # overall output is set as an instance attribute utilizing multiprocessing's "Pool"
-        self.response = multiprocess_manager.compute_reads(
+        self.response: Dict[str, Dict[str, int]] = multiprocess_manager.compute_reads(
             func1=  StatsCalculator.get_lowest,
             func2=  StatsCalculator.get_mean,
             func3=  StatsCalculator.get_median,
@@ -517,7 +518,7 @@ class ItemReadHandler(BaseHandler, DatabaseConnection, QueryMixin):
 
         fetched_data = cursor.fetchall()
 
-        price_date_map = {}
+        price_date_map: Dict[str, int] = {}
 
         for row in fetched_data:
             # hardcoded row data values:
@@ -552,7 +553,7 @@ class ItemSearchHandler(BaseHandler, DatabaseConnection, QueryMixin):
 
         self.response = self._read_data()
 
-    def _read_data(self):
+    def _read_data(self) -> List[dict]:
         self.cursor.execute(
             self.READ_ITEM_SEARCH.format(
                 self._item_slug,
@@ -561,7 +562,7 @@ class ItemSearchHandler(BaseHandler, DatabaseConnection, QueryMixin):
             )
         )
         fetched_data = self.cursor.fetchall()
-        result = []
+        result: List[dict] = []
         for row in fetched_data:
             result.append(
                 {
@@ -604,7 +605,7 @@ class AuctionReadHandler(BaseHandler, DatabaseConnection, QueryMixin):
         # output is set as an instance attribute
         self.response = self._read_data()
 
-    def _read_data(self):
+    def _read_data(self) -> List[dict]:
         self.cursor.execute(
             self.READ_AUCTION_DATA.format(
                 self._realm_name,
@@ -616,7 +617,7 @@ class AuctionReadHandler(BaseHandler, DatabaseConnection, QueryMixin):
         )
 
         fetched_data = self.cursor.fetchall()
-        result = []
+        result: List[dict] = []
         for row in fetched_data:
             # serializing
             result.append(

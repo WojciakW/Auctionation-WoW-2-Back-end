@@ -394,20 +394,24 @@ class RealmWriteHandler(BaseHandler, DatabaseConnection, QueryMixin):
         connection.commit()
         connection.close()
 
+    def _log_time(self) -> None:
+        return str(datetime.now())
 
     def _cache_auction_data(self, realm_id: int, faction_sign: str) -> bool:
         """
         Writes temporary .csv file into cache/ directory for further SQL import purpose.
         Returns False in case operation failed, True otherwise.
         """
+        _pid = os.getpid()
+
         auction_data = self._set_auction_data(realm_id, faction_sign)
 
         # ignore empty Auction Houses and break
         if not auction_data.get('auctions'):  
-            print(f'None auctions in realm_id id: {realm_id}, {faction_sign}')
+            print(f'PID: {_pid} | {self._log_time()} || None auctions in realm_id id: {realm_id}, {faction_sign}')
             return False
 
-        print(f'Caching auctions data from realm id: {realm_id}, {faction_sign} faction ({len(auction_data.get("auctions"))} entries)')
+        print(f'PID: {_pid} | {self._log_time()} || Caching auctions data from realm id: {realm_id}, {faction_sign} faction ({len(auction_data.get("auctions"))} entries)')
 
         # create .csv file
         with open(f'{self.cache_path}/{realm_id}_{faction_sign}.csv', 'w', newline='') as csvfile:

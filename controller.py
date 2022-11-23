@@ -25,6 +25,9 @@ def run_auction_writes() -> None:
     Fetch and write all the live auctions data.
     """
     handler = RealmWriteHandler()
+    print(f"-----------------------------------")
+    print(f"Writes Session: {handler.time}")
+    print(f"-----------------------------------")
     for realm_id in handler.REALM_LIST_EU:
         handler.START(realm_id, 'a')
         handler.START(realm_id, 'h')

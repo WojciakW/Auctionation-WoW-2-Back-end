@@ -1,3 +1,5 @@
+import sys
+
 from src.handlers.database import (
     RealmWriteHandler, 
     ItemDataPopulator,
@@ -13,12 +15,14 @@ def run_create_realm_tables() -> None:
     handler = RealmTableMaker()
     handler.START()
 
+
 def run_create_time_table() -> None:
     """
     Setup PostgreSQL BlizzAPI request time record table 'api_request_time_record'.
     """
     handler = DateTableMaker()
     handler.START()
+
 
 def run_auction_writes() -> None:
     """
@@ -32,6 +36,7 @@ def run_auction_writes() -> None:
         handler.START(realm_id, 'a')
         handler.START(realm_id, 'h')
 
+
 def run_populate_items() -> None:
     """
     Write all the items data.
@@ -40,6 +45,25 @@ def run_populate_items() -> None:
     handler.START()
 
 
+def read_command(*args) -> None:
+    """
+    Execute code proper to command line argument.
+    """
+    if 'run-session' in args:
+        run_auction_writes()
+    
+    elif 'run-create-realm-table' in args:
+        run_create_realm_tables()
+    
+    elif 'run-create-time-table' in args:
+        run_create_time_table()
+
+    elif 'run-populate-items' in args:
+        run_populate_items()
+    
+    else:
+        print('Input command not recognized.')
+
+
 if __name__ == '__main__':
-    # placeholder
-    pass
+    read_command(*sys.argv)

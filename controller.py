@@ -5,6 +5,7 @@ from src.handlers.database import (
     ItemDataPopulator,
     RealmTableMaker,
     DateTableMaker,
+    AuctionDeleteHandler
 )
 
 
@@ -45,6 +46,14 @@ def run_populate_items() -> None:
     handler.START()
 
 
+def run_delete_data() -> None:
+    """
+    Delete all auctions data.
+    """
+    handler = AuctionDeleteHandler()
+    handler.START()
+
+
 def read_command(*args) -> None:
     """
     Execute code proper to command line argument.
@@ -60,6 +69,9 @@ def read_command(*args) -> None:
 
     elif 'run-populate-items' in args:
         run_populate_items()
+
+    elif 'run-delete-data' in args:
+        run_delete_data()
     
     else:
         print('Input command not recognized.')

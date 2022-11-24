@@ -91,6 +91,10 @@ class QueryMixin:
         'h': 6
     }
 
+    DELETE_AUCTION_DATA: str = """--sql
+        DELETE FROM realm_{0}
+    """
+
     CREATE_REALMS: str = """--sql
         CREATE TABLE realm_%s(
             id SERIAL PRIMARY KEY,
@@ -269,7 +273,7 @@ class StatsCalculator:
         return result
 
 
-class BaseHandler(ABC):
+class BaseWriteHandler(ABC):
     """
     Abstract base handler class.
     """
@@ -281,7 +285,7 @@ class BaseHandler(ABC):
         pass
 
 
-class RealmTableMaker(BaseHandler, DatabaseConnection, QueryMixin):
+class RealmTableMaker(BaseWriteHandler, DatabaseConnection, QueryMixin):
     """
     Used to setup database realm tables.
     """
@@ -316,7 +320,7 @@ class RealmTableMaker(BaseHandler, DatabaseConnection, QueryMixin):
 #         self.connection.commit()
 
 
-class DateTableMaker(BaseHandler, DatabaseConnection, QueryMixin):
+class DateTableMaker(BaseWriteHandler, DatabaseConnection, QueryMixin):
     """
     Uset to setup api_request_time table.
     """
@@ -332,7 +336,26 @@ class DateTableMaker(BaseHandler, DatabaseConnection, QueryMixin):
         self.connection.commit()
 
 
-class RealmWriteHandler(BaseHandler, DatabaseConnection, QueryMixin):
+class AuctionDeleteHandler(BaseWriteHandler, DatabaseConnection, QueryMixin):
+    """
+    Optional auction data delete handling class.
+    """
+    def __init__(self) -> None:
+        super().__init__()
+        self.cursor = self.connection.cursor()
+
+    def _delete_auctions(self):
+        for realm_id in self.REALM_LIST_EU:
+            realm_name = self.REALM_LIST_EU[realm_id]
+            print("Deleting auction data from realm ", realm_name)
+            self.cursor.execute(self.DELETE_AUCTION_DATA.format(realm_name))
+            self.connection.commit()
+
+    def START(self):
+        self._delete_auctions()
+
+
+class RealmWriteHandler(BaseWriteHandler, DatabaseConnection, QueryMixin):
     """
     Auction data writes handling class. 
     """
@@ -477,7 +500,7 @@ class RealmWriteHandler(BaseHandler, DatabaseConnection, QueryMixin):
         self._clear_cache(realm_id, faction_sign)
 
 
-class ItemDataPopulator(BaseHandler, QueryMixin, DatabaseConnection):
+class ItemDataPopulator(BaseWriteHandler, QueryMixin, DatabaseConnection):
     """
      Used to populate item data table.
     """
@@ -494,7 +517,7 @@ class ItemDataPopulator(BaseHandler, QueryMixin, DatabaseConnection):
         self.connection.commit()
 
 
-class ItemReadHandler(BaseHandler, DatabaseConnection, QueryMixin):
+class ItemReadHandler(DatabaseConnection, QueryMixin):
     """
     Item data reads handling class.
     """
@@ -554,7 +577,7 @@ class ItemReadHandler(BaseHandler, DatabaseConnection, QueryMixin):
         return price_date_map
     
 
-class ItemSearchHandler(BaseHandler, DatabaseConnection, QueryMixin):
+class ItemSearchHandler(DatabaseConnection, QueryMixin):
     """
     Item read by search query handling class.
     """
@@ -603,7 +626,7 @@ class ItemSearchHandler(BaseHandler, DatabaseConnection, QueryMixin):
         return result
 
 
-class AuctionReadHandler(BaseHandler, DatabaseConnection, QueryMixin):
+class AuctionReadHandler(DatabaseConnection, QueryMixin):
     """
     Auction data reads handling class.
     """
